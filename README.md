@@ -6,6 +6,15 @@ StreamSentry is a Python-based tool designed to detect anomalies in continuous d
 It uses [...  ALGORITHM NAME] to identify unusual patterns, such as exceptionally high values or deviations from the norm, 
 in real-time sequences of floating-point numbers.
 
+## Objective
+
+1. Algorithm Selection: Identify and implement a suitable algorithm for anomaly detection, capable of adapting to concept drift and seasonal variations.
+2. Data Stream Simulation: Design a function to emulate a data stream, incorporating regular patterns, seasonal elements, and random noise.
+3. Anomaly Detection: Develop a real-time mechanism to accurately flag anomalies as the data is streamed.
+4. Optimization: Ensure the algorithm is optimized for both speed and efficiency.
+5. Visualization: Create a straightforward real-time visualization tool to display both the data stream and any detected anomalies.
+
+
 ## Features
 
 - Real-time anomaly detection in continuous data streams
