@@ -17,13 +17,13 @@ class StreamProcessor:
             value = next(stream)
             is_anomaly = self.detector.detect(value)
             self.visualizer.update(value, is_anomaly, self.time)
+            self.visualizer.update_plot()
 
             self.time += 1
 
             if num_points is not None and self.time >= num_points:
                 break
 
-            # Introduce a small delay to control the processing speed
             await asyncio.sleep(0.1)
 
     async def run_async(self, num_points: int = None):
@@ -33,4 +33,4 @@ class StreamProcessor:
         try:
             asyncio.get_event_loop().run_until_complete(self.run_async(num_points))
         except KeyboardInterrupt:
-            print("stream_processor: Stream processing interrupted by user.")
+            print("StreamProcessor: Stream processing interrupted by user.")

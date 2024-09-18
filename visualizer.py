@@ -1,16 +1,14 @@
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
 import numpy as np
 
 class Visualizer:
     def __init__(self, max_points: int = 1000):
         self.max_points = max_points
-        self.values = np.array([])
-        self.anomalies = np.array([], dtype=bool)
-        self.time = np.array([])
+        self.values = []
+        self.anomalies = []
+        self.times = []
 
-        # Set up the plot
-        plt.ion()  # Turn on interactive mode
+        plt.ion()
         self.fig, self.ax = plt.subplots(figsize=(12, 6))
         self.normal_line, = self.ax.plot([], [], lw=2, color='blue', label='Normal')
         self.anomaly_line, = self.ax.plot([], [], 'ro', markersize=5, label='Anomaly')
@@ -24,18 +22,23 @@ class Visualizer:
         self.ax.legend()
 
     def update(self, value: float, is_anomaly: bool, time: float):
-        self.values = np.append(self.values, value)
-        self.anomalies = np.append(self.anomalies, is_anomaly)
-        self.time = np.append(self.time, time)
+        self.values.append(value)
+        self.anomalies.append(is_anomaly)
+        self.times.append(time)
 
         if len(self.values) > self.max_points:
             self.values = self.values[-self.max_points:]
             self.anomalies = self.anomalies[-self.max_points:]
-            self.time = self.time[-self.max_points:]
+            self.times = self.times[-self.max_points:]
 
     def update_plot(self):
-        self.normal_line.set_data(self.time[~self.anomalies], self.values[~self.anomalies])
-        self.anomaly_line.set_data(self.time[self.anomalies], self.values[self.anomalies])
+        normal_times = [t for t, a in zip(self.times, self.anomalies) if not a]
+        normal_values = [v for v, a in zip(self.values, self.anomalies) if not a]
+        anomaly_times = [t for t, a in zip(self.times, self.anomalies) if a]
+        anomaly_values = [v for v, a in zip(self.values, self.anomalies) if a]
+
+        self.normal_line.set_data(normal_times, normal_values)
+        self.anomaly_line.set_data(anomaly_times, anomaly_values)
 
         self.ax.relim()
         self.ax.autoscale_view()
