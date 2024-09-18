@@ -1,13 +1,8 @@
 import asyncio
-from data_stream import DataStreamSimulator
-from anomaly_detector import AnomalyDetector
-from visualizer import Visualizer
 import logging
 
-
 class StreamProcessor:
-    def __init__(self, detector: AnomalyDetector, visualizer: Visualizer, data_stream: DataStreamSimulator,
-                 debug: bool):
+    def __init__(self, detector, visualizer, data_stream, debug: bool):
         self.detector = detector
         self.visualizer = visualizer
         self.data_stream = data_stream
@@ -42,7 +37,7 @@ class StreamProcessor:
 
     def run(self, logger, num_points: int = None):
         try:
-            asyncio.get_event_loop().run_until_complete(self.run_async(logger, num_points))
+            asyncio.run(self.run_async(logger, num_points))
         except KeyboardInterrupt:
             logger.info("StreamProcessor: Stream processing interrupted by user.")
         finally:

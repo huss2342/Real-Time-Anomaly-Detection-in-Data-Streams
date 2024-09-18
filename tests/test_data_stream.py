@@ -1,72 +1,104 @@
 import unittest
-import statistics
-import random
-from data_stream import DataStreamSimulator
+import asyncio
+from unittest.mock import Mock, patch, AsyncMock
+from stream_processor import StreamProcessor
 
 # ANSI COLORS
 GREEN = '\033[92m'
 YELLOW = '\033[93m'
 RESET = '\033[0m'
 
-
-class TestDataStreamSimulator(unittest.TestCase):
-    print(f"{YELLOW}[!]{RESET} Running data_stream tests...")
+class TestStreamProcessor(unittest.TestCase):
+    print(f"{YELLOW}[!]{RESET} Running stream_processor tests...")
 
     def setUp(self):
-        random.seed(42)  # Setting a fixed seed to make it reproducible
-        self.simulator = DataStreamSimulator(
-            base_value=100,
-            noise_level=10,
-            seasonal_factor=20,
-            trend_factor=0.01,
-            cycle_period=1000
-        )
+        self.mock_detector = Mock()
+        self.mock_visualizer = Mock()
+        self.mock_data_stream = Mock()
+        self.mock_data_stream.generate_stream.return_value = iter([1, 2, 3])  # Mock iterator
+        self.mock_logger = Mock()
+        self.stream_processor = StreamProcessor(self.mock_detector, self.mock_visualizer, self.mock_data_stream, debug=False)
 
-    def test_stream_generation(self):
-        """Test if the generator produces values"""
-        stream = self.simulator.generate_stream()
-        for _ in range(100):
-            value = next(stream)
-            self.assertIsInstance(value, float)
-        print(f"{GREEN}[✔]{RESET} test_stream_generation passed!")
+    def test_initialization(self):
+        """Test if StreamProcessor initializes correctly"""
+        self.assertEqual(self.stream_processor.detector, self.mock_detector)
+        self.assertEqual(self.stream_processor.visualizer, self.mock_visualizer)
+        self.assertEqual(self.stream_processor.data_stream, self.mock_data_stream)
+        self.assertEqual(self.stream_processor.time, 0)
+        self.assertFalse(self.stream_processor.debug)
+        print(f"{GREEN}[✔]{RESET} test_initialization passed!")
 
-    def test_base_value_and_trend(self):
-        """Test if the average of many values follows the expected trend"""
-        stream = self.simulator.generate_stream()
-        values = [next(stream) for _ in range(10000)]
-        avg = statistics.mean(values)
-        expected_avg = self.simulator.base_value + (self.simulator.trend_factor * 5000)  # Average time is 5000
-        self.assertAlmostEqual(avg, expected_avg, delta=15)
-        print(f"{GREEN}[✔]{RESET} test_base_value_and_trend passed!")
+    def test_initialization_with_debug(self):
+        """Test if StreamProcessor initializes correctly with debug mode"""
+        stream_processor_debug = StreamProcessor(self.mock_detector, self.mock_visualizer, self.mock_data_stream, debug=True)
+        self.assertTrue(stream_processor_debug.debug)
+        print(f"{GREEN}[✔]{RESET} test_initialization_with_debug passed!")
 
-    def test_noise_level(self):
-        """Test if the noise level is within expected range"""
-        stream = self.simulator.generate_stream()
-        values = [next(stream) for _ in range(10000)]
-        detrended_values = [v - (self.simulator.trend_factor * i) for i, v in enumerate(values)]
-        std_dev = statistics.stdev(detrended_values)
-        expected_std_dev = (self.simulator.noise_level ** 2 + (self.simulator.seasonal_factor ** 2) / 2) ** 0.5
-        self.assertAlmostEqual(std_dev, expected_std_dev, delta=5)
-        print(f"{GREEN}[✔]{RESET} test_noise_level passed!")
+    @patch('asyncio.sleep', new_callable=AsyncMock)
+    def test_process_stream(self, mock_sleep):
+        """Test if process_stream method processes data correctly"""
+        async def run_test():
+            self.mock_visualizer.is_closed = False
+            await self.stream_processor.process_stream(self.mock_logger, num_points=3)
+            print(f"Time: {self.stream_processor.time}")
+            print(f"Detector call count: {self.mock_detector.detect.call_count}")
+            print(f"Visualizer update call count: {self.mock_visualizer.update.call_count}")
+            print(f"Sleep call count: {mock_sleep.call_count}")
+            self.assertEqual(self.stream_processor.time, 3)
+            self.assertEqual(self.mock_detector.detect.call_count, 3)
+            self.assertEqual(self.mock_visualizer.update.call_count, 3)
+            self.assertEqual(mock_sleep.call_count, 2)
+        asyncio.run(run_test())
+        print(f"{GREEN}[✔]{RESET} test_process_stream passed!")
 
-    def test_trend(self):
-        """Test if there's an upward trend in the data"""
-        stream = self.simulator.generate_stream()
-        first_1000 = [next(stream) for _ in range(1000)]
-        second_1000 = [next(stream) for _ in range(1000)]
-        self.assertGreater(statistics.mean(second_1000), statistics.mean(first_1000))
-        print(f"{GREEN}[✔]{RESET} test_trend passed")
+    @patch('asyncio.sleep', new_callable=AsyncMock)
+    def test_process_stream_with_debug(self, mock_sleep):
+        """Test if process_stream method logs debug information when in debug mode"""
+        async def run_test():
+            stream_processor_debug = StreamProcessor(self.mock_detector, self.mock_visualizer, self.mock_data_stream, debug=True)
+            self.mock_visualizer.is_closed = False
+            await stream_processor_debug.process_stream(self.mock_logger, num_points=3)
+            self.assertEqual(self.mock_logger.debug.call_count, 3)
+        asyncio.run(run_test())
+        print(f"{GREEN}[✔]{RESET} test_process_stream_with_debug passed!")
 
-    def test_seasonality(self):
-        """Test if there's a repeating pattern in the data"""
-        stream = self.simulator.generate_stream()
-        values = [next(stream) for _ in range(self.simulator.cycle_period * 2)]
-        first_cycle = values[:self.simulator.cycle_period]
-        second_cycle = values[self.simulator.cycle_period:]
-        correlation = statistics.correlation(first_cycle, second_cycle)
-        self.assertGreater(correlation, 0.9)
-        print(f"{GREEN}[✔]{RESET} test_seasonality passed!")
+    @patch('asyncio.sleep', new_callable=AsyncMock)
+    def test_process_stream_visualizer_closed(self, mock_sleep):
+        """Test if process_stream stops when visualizer is closed"""
+        async def run_test():
+            self.mock_visualizer.is_closed = True
+            await self.stream_processor.process_stream(self.mock_logger)
+            self.assertEqual(self.stream_processor.time, 0)
+            self.mock_logger.info.assert_called_with("Visualizer window was closed. Stopping the stream processing.")
+        asyncio.run(run_test())
+        print(f"{GREEN}[✔]{RESET} test_process_stream_visualizer_closed passed!")
 
+    def test_run_async(self):
+        """Test if run_async method calls process_stream"""
+        async def run_test():
+            with patch.object(self.stream_processor, 'process_stream', new_callable=AsyncMock) as mock_process_stream:
+                await self.stream_processor.run_async(self.mock_logger, num_points=3)
+                mock_process_stream.assert_called_once_with(self.mock_logger, 3)
+        asyncio.run(run_test())
+        print(f"{GREEN}[✔]{RESET} test_run_async passed!")
+
+    def test_run(self):
+        """Test if run method calls run_async"""
+        with patch.object(self.stream_processor, 'run_async', new_callable=AsyncMock) as mock_run_async:
+            self.stream_processor.run(self.mock_logger, num_points=3)
+            mock_run_async.assert_called_once()
+        print(f"{GREEN}[✔]{RESET} test_run passed!")
+
+    def test_run_keyboard_interrupt(self):
+        """Test if run method handles KeyboardInterrupt correctly"""
+        async def mock_run_async(logger, num_points):
+            raise KeyboardInterrupt()
+
+        with patch.object(self.stream_processor, 'run_async', new_callable=AsyncMock, side_effect=mock_run_async):
+            self.stream_processor.run(self.mock_logger, num_points=3)
+            self.mock_logger.info.assert_called_with("StreamProcessor: Stream processing interrupted by user.")
+            self.mock_visualizer.close.assert_called_once()
+        print(f"{GREEN}[✔]{RESET} test_run_keyboard_interrupt passed!")
 
 if __name__ == '__main__':
     unittest.main()

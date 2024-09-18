@@ -20,6 +20,23 @@ StreamGlass is a Python-based tool designed to detect anomalies in continuous da
 - Optimized for both speed and efficiency
 - Adaptable to concept drift and seasonal variations
 
+## Algorithm Choice: Adaptive Rolling Average
+
+StreamGlass uses an Adaptive Rolling Average algorithm for anomaly detection. This algorithm was chosen for several reasons:
+
+1. Adaptability: The algorithm can adapt to changing data patterns over time, making it suitable for streams with concept drift or seasonal variations.
+2. Efficiency: It has a low computational overhead, allowing for real-time processing of high-velocity data streams.
+3. Simplicity: The algorithm is straightforward to implement and understand, making it easier to maintain and modify.
+4. Sensitivity: It can detect both sudden spikes and gradual shifts in the data, providing a good balance between sensitivity and robustness.
+
+The Adaptive Rolling Average works by maintaining a moving average and standard deviation of the data stream. It uses these statistics to define a dynamic threshold for anomaly detection. The key features of our implementation include:
+
+- Dynamic threshold adjustment: The threshold adapts over time based on the observed data, allowing it to handle changing data distributions.
+- Configurable window size: Users can adjust the window size to balance between responsiveness to recent changes and stability of the detection threshold.
+- Adaptive rate: The rate at which the algorithm adapts to new data can be configured, allowing for fine-tuning of the detector's behavior.
+
+This algorithm provides a good balance between performance and effectiveness for real-time anomaly detection in various types of data streams.
+
 ## Installation
 
 1. Clone the repository:

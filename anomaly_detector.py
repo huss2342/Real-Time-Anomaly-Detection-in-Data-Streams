@@ -14,7 +14,7 @@ class AnomalyDetector(ABC):
 
 
 class AdaptiveRollingAverageDetector:
-    def __init__(self, window_size: int = 100, initial_threshold: float = 3.5, adaptation_rate: float = 0.05):
+    def __init__(self, window_size: int = 100, initial_threshold: float = 3.2, adaptation_rate: float = 0.05):
         self.window_size = window_size
         self.threshold = initial_threshold
         self.adaptation_rate = adaptation_rate
