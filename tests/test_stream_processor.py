@@ -2,15 +2,27 @@ import unittest
 from unittest.mock import Mock, patch
 import asyncio
 from src.stream_processor import StreamProcessor
+import sys
 
 # ANSI COLORS
 GREEN = '\033[92m'
+RED = '\033[91m'
 YELLOW = '\033[93m'
 RESET = '\033[0m'
 
+class CustomTestResult(unittest.TestResult):
+    def addFailure(self, test, err):
+        super().addFailure(test, err)
+        print(f"{RED}[X]{RESET} {test._testMethodName} failed!")
+
+    def addError(self, test, err):
+        super().addError(test, err)
+        print(f"{RED}[X]{RESET} {test._testMethodName} encountered an error!")
 
 class TestStreamProcessor(unittest.TestCase):
-    print(f"{YELLOW}[!]{RESET} Running stream_processor tests...")
+    @classmethod
+    def setUpClass(cls):
+        print(f"{YELLOW}[!]{RESET} Running stream_processor tests...")
 
     def setUp(self):
         self.mock_detector = Mock()
@@ -53,7 +65,7 @@ class TestStreamProcessor(unittest.TestCase):
         self.assertEqual(mock_sleep.call_count, 2)
         print(f"{GREEN}[✔]{RESET} test_process_stream passed!")
 
-    @patch('stream_processor.StreamProcessor.process_stream')
+    @patch('src.stream_processor.StreamProcessor.process_stream')
     def test_run(self, mock_process_stream):
         """Test if run method calls process_stream"""
         loop = asyncio.new_event_loop()
@@ -70,7 +82,7 @@ class TestStreamProcessor(unittest.TestCase):
         finally:
             loop.close()
 
-    @patch('stream_processor.StreamProcessor.process_stream', side_effect=KeyboardInterrupt)
+    @patch('src.stream_processor.StreamProcessor.process_stream', side_effect=KeyboardInterrupt)
     def test_run_keyboard_interrupt(self, mock_process_stream):
         """Test if run method handles KeyboardInterrupt correctly"""
         self.stream_processor.run(self.mock_logger, num_points=3)
@@ -78,6 +90,8 @@ class TestStreamProcessor(unittest.TestCase):
         self.mock_visualizer.close.assert_called_once()
         print(f"{GREEN}[✔]{RESET} test_run_keyboard_interrupt passed!")
 
-
 if __name__ == '__main__':
-    unittest.main()
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestStreamProcessor)
+    runner = unittest.TextTestRunner(resultclass=CustomTestResult, stream=sys.stderr, verbosity=2)
+    result = runner.run(suite)
+    sys.exit(not result.wasSuccessful())

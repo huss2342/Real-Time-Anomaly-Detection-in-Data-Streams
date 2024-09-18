@@ -2,14 +2,27 @@ import unittest
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
 from src.stream_processor import StreamProcessor
+import sys
 
 # ANSI COLORS
 GREEN = '\033[92m'
+RED = '\033[91m'
 YELLOW = '\033[93m'
 RESET = '\033[0m'
 
+class CustomTestResult(unittest.TestResult):
+    def addFailure(self, test, err):
+        super().addFailure(test, err)
+        print(f"{RED}[X]{RESET} {test._testMethodName} failed!")
+
+    def addError(self, test, err):
+        super().addError(test, err)
+        print(f"{RED}[X]{RESET} {test._testMethodName} encountered an error!")
+
 class TestStreamProcessor(unittest.TestCase):
-    print(f"{YELLOW}[!]{RESET} Running stream_processor tests...")
+    @classmethod
+    def setUpClass(cls):
+        print(f"{YELLOW}[!]{RESET} Running stream_processor tests...")
 
     def setUp(self):
         self.mock_detector = Mock()
@@ -89,16 +102,20 @@ class TestStreamProcessor(unittest.TestCase):
             mock_run_async.assert_called_once()
         print(f"{GREEN}[✔]{RESET} test_run passed!")
 
-    def test_run_keyboard_interrupt(self):
-        """Test if run method handles KeyboardInterrupt correctly"""
-        async def mock_run_async(logger, num_points):
-            raise KeyboardInterrupt()
+        def test_run_keyboard_interrupt(self):
+            """Test if run method handles KeyboardInterrupt correctly"""
 
-        with patch.object(self.stream_processor, 'run_async', new_callable=AsyncMock, side_effect=mock_run_async):
-            self.stream_processor.run(self.mock_logger, num_points=3)
-            self.mock_logger.info.assert_called_with("StreamProcessor: Stream processing interrupted by user.")
-            self.mock_visualizer.close.assert_called_once()
-        print(f"{GREEN}[✔]{RESET} test_run_keyboard_interrupt passed!")
+            async def mock_run_async(logger, num_points):
+                raise KeyboardInterrupt()
+
+            with patch.object(self.stream_processor, 'run_async', new_callable=AsyncMock, side_effect=mock_run_async):
+                self.stream_processor.run(self.mock_logger, num_points=3)
+                self.mock_logger.info.assert_called_with("StreamProcessor: Stream processing interrupted by user.")
+                self.mock_visualizer.close.assert_called_once()
+            print(f"{GREEN}[✔]{RESET} test_run_keyboard_interrupt passed!")
 
 if __name__ == '__main__':
-    unittest.main()
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestStreamProcessor)
+    runner = unittest.TextTestRunner(resultclass=CustomTestResult, stream=sys.stderr, verbosity=2)
+    result = runner.run(suite)
+    sys.exit(not result.wasSuccessful())

@@ -1,15 +1,27 @@
 import unittest
 import random
 from src.anomaly_detector import RollingAverageDetector, ZScoreDetector
+import sys
 
 # ANSI COLORS
 GREEN = '\033[92m'
+RED = '\033[91m'
 YELLOW = '\033[93m'
 RESET = '\033[0m'
 
+class CustomTestResult(unittest.TestResult):
+    def addFailure(self, test, err):
+        super().addFailure(test, err)
+        print(f"{RED}[X]{RESET} {test._testMethodName} failed!")
+
+    def addError(self, test, err):
+        super().addError(test, err)
+        print(f"{RED}[X]{RESET} {test._testMethodName} encountered an error!")
 
 class TestAnomalyDetector(unittest.TestCase):
-    print(f"{YELLOW}[!]{RESET} Running anomaly_detector tests...")
+    @classmethod
+    def setUpClass(cls):
+        print(f"{YELLOW}[!]{RESET} Running anomaly_detector tests...")
 
     def setUp(self):
         random.seed(42)  # Setting a fixed seed to make it reproducible
@@ -24,7 +36,7 @@ class TestAnomalyDetector(unittest.TestCase):
         print(f"{GREEN}[✔]{RESET} test_rolling_average_detector_initialization passed!")
 
     def test_rolling_average_detector_fit(self):
-        f"""{RESET}Test if RollingAverageDetector fits data correctly"""
+        """Test if RollingAverageDetector fits data correctly"""
         detector = RollingAverageDetector(window_size=100)
         detector.fit(self.normal_data)
         self.assertEqual(len(detector.window), 100)
@@ -65,6 +77,8 @@ class TestAnomalyDetector(unittest.TestCase):
         self.assertTrue(detector.detect(0))
         print(f"{GREEN}[✔]{RESET} test_zscore_detector_detect passed!")
 
-
 if __name__ == '__main__':
-    unittest.main()
+    suite = unittest.TestLoader().loadTestsFromTestCase(TestAnomalyDetector)
+    runner = unittest.TextTestRunner(resultclass=CustomTestResult, stream=sys.stderr, verbosity=2)
+    result = runner.run(suite)
+    sys.exit(not result.wasSuccessful())
