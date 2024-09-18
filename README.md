@@ -73,7 +73,7 @@ python main.py --window 150 --threshold 4.0 --adaptation-rate 0.05
 
 The tool provides a real-time visualization of the data stream and detected anomalies:
 
-![Simulation Screenshot](simulation.png)
+![Simulation Screenshot](screenshot/simulation.png)
 
 - Blue line: Normal data points
 - Red dots: Detected anomalies

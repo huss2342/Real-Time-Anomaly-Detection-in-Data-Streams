@@ -1,6 +1,6 @@
 import unittest
 import random
-from anomaly_detector import RollingAverageDetector, ZScoreDetector
+from src.anomaly_detector import RollingAverageDetector, ZScoreDetector
 
 # ANSI COLORS
 GREEN = '\033[92m'

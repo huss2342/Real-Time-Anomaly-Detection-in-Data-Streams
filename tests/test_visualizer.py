@@ -2,7 +2,7 @@ import unittest
 import numpy as np
 import matplotlib
 matplotlib.use('Agg')
-from visualizer import Visualizer
+from src.visualizer import Visualizer
 
 # ANSI COLORS
 GREEN = '\033[92m'

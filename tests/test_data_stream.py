@@ -1,7 +1,7 @@
 import unittest
 import asyncio
 from unittest.mock import Mock, patch, AsyncMock
-from stream_processor import StreamProcessor
+from src.stream_processor import StreamProcessor
 
 # ANSI COLORS
 GREEN = '\033[92m'
