@@ -42,7 +42,6 @@ This algorithm provides a good balance between performance and effectiveness for
 1. Clone the repository:
    ```
    git clone https://github.com/yourusername/streamglass.git
-   cd streamglass
    ```
 
 2. Install the required packages:
@@ -55,7 +54,7 @@ This algorithm provides a good balance between performance and effectiveness for
 Run the main script with optional arguments:
 
 ```
-python main.py [--window WINDOW] [--threshold THRESHOLD] [--adaptation-rate ADAPTATION_RATE] [--debug]
+python src/main.py [--window WINDOW] [--threshold THRESHOLD] [--adaptation-rate ADAPTATION_RATE] [--debug]
 ```
 
 Arguments:
@@ -66,7 +65,7 @@ Arguments:
 
 Example:
 ```
-python main.py --window 150 --threshold 4.0 --adaptation-rate 0.05
+python src/main.py --window 150 --threshold 4.0 --adaptation-rate 0.05
 ```
 
 ## Visualization
