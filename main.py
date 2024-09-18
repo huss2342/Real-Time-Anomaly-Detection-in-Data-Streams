@@ -1,28 +1,24 @@
 import asyncio
 import argparse
 import sys
+import logging
 from data_stream import DataStreamSimulator
-from anomaly_detector import AdaptiveRollingAverageDetector, ZScoreDetector
+from anomaly_detector import AdaptiveRollingAverageDetector
 from stream_processor import StreamProcessor
 from visualizer import Visualizer
 
-def get_detector(detector_type, window_size, threshold, adaptation_rate=0.1):
-    if detector_type == 'adaptive_rolling_average':
-        return AdaptiveRollingAverageDetector(window_size=window_size, initial_threshold=threshold, adaptation_rate=adaptation_rate)
-    elif detector_type == 'zscore':
-        return ZScoreDetector(window_size=window_size, threshold=threshold)
-    else:
-        raise ValueError(f"Unknown detector type: {detector_type}")
 
-async def run_stream_processor(processor):
-    await processor.run_async()
+def setup_logging(debug):
+    level = logging.DEBUG if debug else logging.INFO
+    logging.basicConfig(level=level,
+                        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        filename='anomaly_detection_debug.log' if debug else None)
+    return logging.getLogger(__name__)
 
-async def update_plot(visualizer):
-    while True:
-        visualizer.update_plot()
-        await asyncio.sleep(0.1)
 
-async def main_async(detector_type, window_size, threshold, adaptation_rate):
+async def main_async(detector_type, window_size, threshold, adaptation_rate, debug):
+    logger = setup_logging(debug)
+
     simulator = DataStreamSimulator(
         base_value=100,
         noise_level=10,
@@ -30,42 +26,47 @@ async def main_async(detector_type, window_size, threshold, adaptation_rate):
         trend_factor=0.01,
         cycle_period=1000
     )
-    detector = get_detector(detector_type, window_size, threshold, adaptation_rate)
-    visualizer = Visualizer(max_points=1000)
-    processor = StreamProcessor(detector, visualizer, simulator)
+    detector = AdaptiveRollingAverageDetector(window_size=window_size, initial_threshold=threshold,
+                                              adaptation_rate=adaptation_rate)
+    visualizer = Visualizer(max_points=1000, window_size=window_size)  # Pass window_size here
+    processor = StreamProcessor(detector, visualizer, simulator, debug)
 
-    print(f"Starting real-time anomaly detection using {detector_type} detector...")
-    print("Close the plot window or press Ctrl+C to stop the process.")
+    logger.info(f"Starting real-time anomaly detection using {detector_type} detector...")
+    logger.info("Close the plot window or press Ctrl+C to stop the process.")
 
-    await asyncio.gather(
-        run_stream_processor(processor),
-        update_plot(visualizer)
-    )
+    await processor.run_async(logger)
+
+    if visualizer.is_closed:
+        logger.info("Visualizer window was closed. Exiting the program.")
+        sys.exit(0)
+
 
 def main():
     parser = argparse.ArgumentParser(
         description="Real-time Anomaly Detection in Data Streams",
         formatter_class=argparse.RawTextHelpFormatter
     )
-    parser.add_argument('--detector', type=str, default='adaptive_rolling_average',
-                        choices=['adaptive_rolling_average', 'zscore'],
-                        help='Type of anomaly detector to use (default: adaptive_rolling_average)')
     parser.add_argument('--window', type=int, default=100,
                         help='Window size for the detector (default: 100)')
     parser.add_argument('--threshold', type=float, default=3.0,
-                        help='Initial threshold for anomaly detection (default: 3.0)')
+                        help='Initial threshold for anomaly detection (default: 3.5)')
     parser.add_argument('--adaptation-rate', type=float, default=0.1,
                         help='Adaptation rate for adaptive rolling average detector (default: 0.1)')
+    parser.add_argument('--debug', action='store_true',
+                        help='Enable debug mode and log detailed information to a file')
 
     args = parser.parse_args()
 
     try:
-        asyncio.run(main_async(args.detector, args.window, args.threshold, args.adaptation_rate))
+        asyncio.run(
+            main_async('adaptive_rolling_average', args.window, args.threshold, args.adaptation_rate, args.debug))
     except KeyboardInterrupt:
         print("\nProgram interrupted by user. Exiting...")
     except Exception as e:
         print(f"An error occurred: {e}")
-        sys.exit(1)
+    finally:
+        sys.exit(0)
+
 
 if __name__ == "__main__":
     main()
